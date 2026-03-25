@@ -3,6 +3,19 @@
 let chart = null;
 let charts = {}; // Untuk menyimpan multiple chart instances
 
+// Register plugin datalabels
+Chart.register(ChartDataLabels);
+Chart.defaults.set('plugins.datalabels', {
+    color: '#1e293b',
+    font: {
+        weight: 'bold',
+        size: 11
+    },
+    formatter: function(value, context) {
+        return value > 0 ? value : '';
+    }
+});
+
 // Fungsi untuk membuat chart di tab Konsultasi
 function createKonsultasiCharts(data, containerId) {
     const container = document.getElementById(containerId);
@@ -76,7 +89,6 @@ function createKonsultasiCharts(data, containerId) {
                 tooltip: { mode: 'index', intersect: false },
                 datalabels: {
                     display: true,
-                    color: '#1e293b',
                     align: 'top',
                     offset: 4,
                     font: { weight: 'bold', size: 11 },
@@ -112,7 +124,6 @@ function createKonsultasiCharts(data, containerId) {
                 tooltip: { mode: 'index', intersect: false },
                 datalabels: {
                     display: true,
-                    color: '#1e293b',
                     anchor: 'end',
                     align: 'right',
                     offset: 4,
@@ -279,7 +290,6 @@ function createBerobatCharts(data, containerId) {
                 tooltip: { mode: 'index', intersect: false },
                 datalabels: {
                     display: true,
-                    color: '#1e293b',
                     align: 'top',
                     offset: 4,
                     font: { weight: 'bold', size: 11 },
@@ -315,7 +325,6 @@ function createBerobatCharts(data, containerId) {
                 tooltip: { mode: 'index', intersect: false },
                 datalabels: {
                     display: true,
-                    color: '#1e293b',
                     anchor: 'end',
                     align: 'right',
                     offset: 4,
@@ -452,7 +461,6 @@ function createBerobatCharts(data, containerId) {
                 tooltip: { mode: 'index', intersect: false },
                 datalabels: {
                     display: true,
-                    color: '#1e293b',
                     anchor: 'end',
                     align: 'right',
                     offset: 4,
@@ -466,7 +474,7 @@ function createBerobatCharts(data, containerId) {
         }
     });
     
-    // Buat chart top 10 nama obat (BAR dengan value)
+    // Buat chart top 10 nama obat (BAR dengan value) - menggunakan kolom 'Nama Obat'
     const topObatData = getTopData(data, 'Nama Obat', 10);
     const topObatCtx = document.getElementById('chartBerobatTopObat').getContext('2d');
     charts.berobatTopObat = new Chart(topObatCtx, {
@@ -474,7 +482,7 @@ function createBerobatCharts(data, containerId) {
         data: {
             labels: topObatData.labels,
             datasets: [{
-                label: 'Jumlah',
+                label: 'Jumlah Penggunaan',
                 data: topObatData.values,
                 backgroundColor: '#0dcaf0',
                 borderRadius: 8
@@ -486,10 +494,17 @@ function createBerobatCharts(data, containerId) {
             indexAxis: 'y',
             plugins: {
                 legend: { display: false },
-                tooltip: { mode: 'index', intersect: false },
+                tooltip: { 
+                    mode: 'index', 
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return `Jumlah: ${context.raw} kali digunakan`;
+                        }
+                    }
+                },
                 datalabels: {
                     display: true,
-                    color: '#1e293b',
                     anchor: 'end',
                     align: 'right',
                     offset: 4,
@@ -498,7 +513,22 @@ function createBerobatCharts(data, containerId) {
                 }
             },
             scales: {
-                x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
+                x: { 
+                    beginAtZero: true, 
+                    ticks: { stepSize: 1, precision: 0 },
+                    title: {
+                        display: true,
+                        text: 'Jumlah Penggunaan',
+                        font: { weight: 'bold', size: 12 }
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Nama Obat',
+                        font: { weight: 'bold', size: 12 }
+                    }
+                }
             }
         }
     });
@@ -526,7 +556,6 @@ function createBerobatCharts(data, containerId) {
                 tooltip: { mode: 'index', intersect: false },
                 datalabels: {
                     display: true,
-                    color: '#1e293b',
                     anchor: 'end',
                     align: 'right',
                     offset: 4,
@@ -614,7 +643,6 @@ function createKecelakaanCharts(data, containerId) {
                 tooltip: { mode: 'index', intersect: false },
                 datalabels: {
                     display: true,
-                    color: '#1e293b',
                     align: 'top',
                     offset: 4,
                     font: { weight: 'bold', size: 11 },
@@ -650,7 +678,6 @@ function createKecelakaanCharts(data, containerId) {
                 tooltip: { mode: 'index', intersect: false },
                 datalabels: {
                     display: true,
-                    color: '#1e293b',
                     anchor: 'end',
                     align: 'right',
                     offset: 4,
@@ -729,7 +756,16 @@ function getTopData(data, field, limit) {
     data.forEach(r => {
         const val = r[field];
         if (val && val !== '-' && val !== '') {
-            count[val] = (count[val] || 0) + 1;
+            // Untuk field 'Nama Obat', kita perlu memisahkan jika ada multiple obat
+            if (field === 'Nama Obat') {
+                // Jika ada koma atau titik koma, pisahkan
+                const obatList = val.split(/[,;]/).map(o => o.trim()).filter(o => o && o !== '-');
+                obatList.forEach(obat => {
+                    count[obat] = (count[obat] || 0) + 1;
+                });
+            } else {
+                count[val] = (count[val] || 0) + 1;
+            }
         }
     });
     
