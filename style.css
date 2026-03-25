@@ -465,6 +465,11 @@ body {
     transform: translateY(-5px);
 }
 
+/* Style khusus untuk label di bar chart horizontal */
+.chartjs-datalabel[data-indexaxis="y"] {
+    transform: translateX(-5px) !important;
+}
+
 .doughnut-label,
 .pie-label {
     font-size: 12px !important;
