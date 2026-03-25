@@ -178,6 +178,7 @@ function createBerobatCharts(data, containerId) {
     if (!container) return;
     
     // Hapus chart lama jika ada
+    if (charts.berobatDaily) charts.berobatDaily.destroy();
     if (charts.berobatMonthly) charts.berobatMonthly.destroy();
     if (charts.berobatDept) charts.berobatDept.destroy();
     if (charts.berobatGender) charts.berobatGender.destroy();
@@ -189,6 +190,15 @@ function createBerobatCharts(data, containerId) {
     
     container.innerHTML = `
         <div class="row g-4">
+            <!-- Kunjungan Harian - Full Width -->
+            <div class="col-12">
+                <div class="content-section">
+                    <h6 class="fw-bold mb-3"><i class="fa-solid fa-calendar-day me-2 text-primary"></i>Kunjungan Harian</h6>
+                    <div style="height: 350px; position: relative;">
+                        <canvas id="chartBerobatDaily"></canvas>
+                    </div>
+                </div>
+            </div>
             <div class="col-lg-6">
                 <div class="content-section">
                     <h6 class="fw-bold mb-3"><i class="fa-solid fa-calendar-alt me-2 text-primary"></i>Jumlah per Bulan</h6>
@@ -259,6 +269,73 @@ function createBerobatCharts(data, containerId) {
             <div id="berobat-table-container"></div>
         </div>
     `;
+    
+    // Buat chart harian (BAR CHART untuk kunjungan per tanggal) - FULL WIDTH
+    const dailyData = getDailyData(data);
+    const dailyCtx = document.getElementById('chartBerobatDaily').getContext('2d');
+    charts.berobatDaily = new Chart(dailyCtx, {
+        type: 'bar',
+        data: {
+            labels: dailyData.labels,
+            datasets: [{
+                label: 'Jumlah Kunjungan',
+                data: dailyData.values,
+                backgroundColor: '#0d6efd',
+                borderRadius: 6,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { 
+                    mode: 'index', 
+                    intersect: false,
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            return `Tanggal ${tooltipItems[0].label}`;
+                        },
+                        label: function(context) {
+                            return `Jumlah: ${context.raw} kunjungan`;
+                        }
+                    }
+                },
+                datalabels: {
+                    display: true,
+                    align: 'top',
+                    offset: 4,
+                    font: { weight: 'bold', size: 10 },
+                    formatter: (value) => value > 0 ? value : ''
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Tanggal',
+                        font: { weight: 'bold', size: 12 }
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                        autoSkip: true,
+                        maxTicksLimit: 31
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, precision: 0 },
+                    title: {
+                        display: true,
+                        text: 'Jumlah Kunjungan',
+                        font: { weight: 'bold', size: 12 }
+                    }
+                }
+            }
+        }
+    });
     
     // Buat chart monthly (LINE CHART)
     const monthlyData = getMonthlyData(data);
@@ -735,6 +812,50 @@ function getMonthlyData(data) {
         }
     });
     return monthly;
+}
+
+// Fungsi baru untuk mendapatkan data harian
+function getDailyData(data) {
+    const daily = {};
+    data.forEach(r => {
+        let tanggal = r.Tanggal;
+        if (tanggal) {
+            // Parse tanggal untuk mendapatkan format yang konsisten
+            let dateStr;
+            try {
+                const date = new Date(tanggal);
+                if (!isNaN(date)) {
+                    dateStr = `${date.getDate()}`;
+                } else {
+                    // Coba format DD/MM/YYYY
+                    const parts = tanggal.split('/');
+                    if (parts.length === 3) {
+                        dateStr = `${parseInt(parts[0])}`;
+                    } else {
+                        dateStr = tanggal;
+                    }
+                }
+            } catch(e) {
+                dateStr = tanggal;
+            }
+            daily[dateStr] = (daily[dateStr] || 0) + 1;
+        }
+    });
+    
+    // Urutkan berdasarkan tanggal 1-31
+    const sorted = [];
+    for (let i = 1; i <= 31; i++) {
+        const key = i.toString();
+        sorted.push({
+            label: i.toString(),
+            value: daily[key] || 0
+        });
+    }
+    
+    return {
+        labels: sorted.map(item => item.label),
+        values: sorted.map(item => item.value)
+    };
 }
 
 function getGenderData(data) {
