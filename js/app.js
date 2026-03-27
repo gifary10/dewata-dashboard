@@ -92,11 +92,23 @@ const app = {
         
         errorDiv.classList.add('d-none');
         this.unit = company;
-        document.getElementById('active-company-name').textContent = company;
+        
+        // Update company name in both locations
+        const companyNameElements = document.querySelectorAll('#active-company-name, #active-company-name-sidebar');
+        companyNameElements.forEach(el => {
+            if (el) el.textContent = company;
+        });
+        
         document.getElementById('welcome-screen').classList.add('d-none');
         document.getElementById('main-dashboard').classList.remove('d-none');
         this.populateFilters();
         this.apply();
+        
+        // Show sidebar on desktop
+        if (window.innerWidth > 992) {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.remove('collapsed');
+        }
     },
 
     changeCompany() {
@@ -112,12 +124,18 @@ const app = {
         const depts = [...new Set(base.map(r => r.Departemen).filter(Boolean))].sort();
         const years = [...new Set(base.map(r => r.tahun).filter(Boolean))].sort();
         
-        document.getElementById('filter-dept').innerHTML = 
-            '<option value="">Semua Dept</option>' + 
-            depts.map(d => `<option value="${d}">${d}</option>`).join('');
-        document.getElementById('filter-tahun').innerHTML = 
-            '<option value="">Semua Tahun</option>' + 
-            years.map(y => `<option value="${y}">${y}</option>`).join('');
+        const deptSelect = document.getElementById('filter-dept');
+        const tahunSelect = document.getElementById('filter-tahun');
+        
+        if (deptSelect) {
+            deptSelect.innerHTML = '<option value="">Semua Departemen</option>' + 
+                depts.map(d => `<option value="${d}">${d}</option>`).join('');
+        }
+        
+        if (tahunSelect) {
+            tahunSelect.innerHTML = '<option value="">Semua Tahun</option>' + 
+                years.map(y => `<option value="${y}">${y}</option>`).join('');
+        }
     },
 
     apply() {
@@ -152,6 +170,7 @@ const app = {
     renderKonsultasiCharts() {
         const data = this.filtered.filter(r => r.type === 'Konsultasi');
         const panel = document.getElementById('panel-konsultasi');
+        if (!panel) return;
         panel.innerHTML = '';
         const chartsContainer = document.createElement('div');
         chartsContainer.id = 'konsultasi-charts-container';
@@ -209,6 +228,7 @@ const app = {
     renderBerobatCharts() {
         const data = this.filtered.filter(r => r.type === 'Berobat');
         const panel = document.getElementById('panel-berobat');
+        if (!panel) return;
         panel.innerHTML = '';
         const chartsContainer = document.createElement('div');
         chartsContainer.id = 'berobat-charts-container';
@@ -274,6 +294,7 @@ const app = {
     renderKecelakaanCharts() {
         const data = this.filtered.filter(r => r.type === 'Kecelakaan');
         const panel = document.getElementById('panel-kecelakaan');
+        if (!panel) return;
         panel.innerHTML = '';
         const chartsContainer = document.createElement('div');
         chartsContainer.id = 'kecelakaan-charts-container';
@@ -357,7 +378,8 @@ const app = {
 
     generatePageNumbers(type, page, totalPages) {
         let html = '';
-        for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+        const maxPages = Math.min(totalPages, 5);
+        for (let i = 1; i <= maxPages; i++) {
             html += `
                 <li class="page-item ${page === i ? 'active' : ''}">
                     <a class="page-link" href="#" onclick="app.goToPage('${type}', ${i})">${i}</a>
@@ -384,18 +406,27 @@ const app = {
     bindEvents() {
         const filterIds = ['filter-nama', 'filter-dept', 'filter-bulan', 'filter-tahun'];
         filterIds.forEach(id => {
-            document.getElementById(id).addEventListener('input', () => this.apply());
-            document.getElementById(id).addEventListener('change', () => this.apply());
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', () => this.apply());
+                element.addEventListener('change', () => this.apply());
+            }
         });
         
-        document.getElementById('welcome-password').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.enterDashboard();
-        });
+        const welcomePassword = document.getElementById('welcome-password');
+        if (welcomePassword) {
+            welcomePassword.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.enterDashboard();
+            });
+        }
     },
 
     resetFilters() {
         const filterIds = ['filter-nama', 'filter-dept', 'filter-bulan', 'filter-tahun'];
-        filterIds.forEach(id => document.getElementById(id).value = '');
+        filterIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
         this.apply();
     }
 };
